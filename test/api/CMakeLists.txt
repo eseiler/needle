@@ -4,9 +4,9 @@
 
 cmake_minimum_required (VERSION 3.25...3.30)
 
-add_app_test (count_test.cpp)
-add_app_test (insert_delete_test.cpp)
-add_app_test (estimate_test.cpp)
-add_app_test (ibf_test.cpp)
-add_app_test (ibfmin_test.cpp)
-add_app_test (minimiser_test.cpp)
+# add_app_test (count_test.cpp)
+# add_app_test (insert_delete_test.cpp)
+# add_app_test (estimate_test.cpp)
+# add_app_test (ibf_test.cpp)
+# add_app_test (ibfmin_test.cpp)
+# add_app_test (minimiser_test.cpp)

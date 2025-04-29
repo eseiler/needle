@@ -15,7 +15,7 @@
 // To prevent issues when running multiple CLI tests in parallel, give each CLI test unique names:
 struct ibf_test : public app_test
 {
-    void initialization_args(estimate_ibf_arguments & args)
+    void initialization_args(configuration & args)
     {
         args.compressed = true;
         args.k = 4;
@@ -27,7 +27,7 @@ struct ibf_test : public app_test
 
 TEST_F(ibf_test, given_expression_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_Exp_";
@@ -59,8 +59,8 @@ TEST_F(ibf_test, given_expression_thresholds)
 
     ASSERT_TRUE(std::filesystem::exists("IBF_Test_Exp_IBF_Data"));
     {
-        estimate_ibf_arguments args{};
-        load_args(args, "IBF_Test_Exp_IBF_Data");
+        configuration args{};
+        args.load("IBF_Test_Exp_IBF_Data");
         EXPECT_EQ(4, args.k);
         EXPECT_EQ(4, args.w_size.get());
         EXPECT_EQ(0, args.s.get());
@@ -74,7 +74,7 @@ TEST_F(ibf_test, given_expression_thresholds)
 
 TEST_F(ibf_test, given_expression_thresholds_include_file)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_Include_";
@@ -107,7 +107,7 @@ TEST_F(ibf_test, given_expression_thresholds_include_file)
 
 TEST_F(ibf_test, given_expression_thresholds_exclude_file)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_Exclude_";
@@ -140,7 +140,7 @@ TEST_F(ibf_test, given_expression_thresholds_exclude_file)
 
 TEST_F(ibf_test, no_given_expression_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_";
@@ -173,7 +173,7 @@ TEST_F(ibf_test, no_given_expression_thresholds)
 
 TEST_F(ibf_test, expression_thresholds_by_genome)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_";
@@ -206,7 +206,7 @@ TEST_F(ibf_test, expression_thresholds_by_genome)
 
 TEST_F(ibf_test, throws)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     std::vector<uint8_t> cutoffs{};
     initialization_args(ibf_args);
@@ -229,7 +229,7 @@ TEST_F(ibf_test, throws)
 
 TEST_F(ibf_test, given_cutoffs)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_Cut_";
@@ -258,10 +258,10 @@ TEST_F(ibf_test, given_cutoffs)
         EXPECT_RANGE_EQ(expected_result, res2);
     }
 
-    estimate_ibf_arguments args{};
+    configuration args{};
     ASSERT_TRUE(std::filesystem::exists("IBF_Test_Cut_IBF_Data"));
     {
-        load_args(args, "IBF_Test_Cut_IBF_Data");
+        args.load("IBF_Test_Cut_IBF_Data");
         EXPECT_EQ(4, args.k);
         EXPECT_EQ(4, args.w_size.get());
         EXPECT_EQ(0, args.s.get());
@@ -275,7 +275,7 @@ TEST_F(ibf_test, given_cutoffs)
 
 TEST_F(ibf_test, different_file_sizes)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.path_out = "IBF_Test_Diff_";

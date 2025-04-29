@@ -15,7 +15,7 @@
 // To prevent issues when running multiple CLI tests in parallel, give each CLI test unique names:
 struct count_test : public app_test
 {
-    void initialization_args(estimate_ibf_arguments & args)
+    void initialization_args(configuration & args)
     {
         args.compressed = true;
         args.k = 4;
@@ -28,7 +28,7 @@ struct count_test : public app_test
 
 TEST_F(count_test, small_example)
 {
-    estimate_ibf_arguments args{};
+    configuration args{};
     initialization_args(args);
 
     count(args, {data("mini_example.fasta")}, data("mini_gen.fasta"), data("mini_gen.genome"), false);
@@ -48,7 +48,7 @@ TEST_F(count_test, small_example)
 
 TEST_F(count_test, small_example_paired)
 {
-    estimate_ibf_arguments args{};
+    configuration args{};
     initialization_args(args);
 
     count(args,
@@ -72,7 +72,7 @@ TEST_F(count_test, small_example_paired)
 
 TEST_F(count_test, small_example_exclude)
 {
-    estimate_ibf_arguments args{};
+    configuration args{};
     initialization_args(args);
 
     count(args, {data("mini_example.fasta")}, data("mini_gen.fasta"), data("mini_gen2.genome"), false);
@@ -92,7 +92,7 @@ TEST_F(count_test, small_example_exclude)
 
 TEST_F(count_test, genome_small_example)
 {
-    estimate_ibf_arguments args{};
+    configuration args{};
     initialization_args(args);
 
     count_genome(args, data("mini_gen.fasta"), data("mini_gen2.fasta"));

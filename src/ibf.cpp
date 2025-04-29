@@ -34,16 +34,16 @@
 #include "shared.hpp"
 
 // Create set with hashes from the minimisers from an include or exclude file.
-void get_include_set_table(min_arguments const & args,
+void get_include_set_table(configuration const & config,
                            std::filesystem::path const include_file,
                            robin_hood::unordered_set<uint64_t> & include_table)
 {
     seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin3{include_file};
     for (auto & [seq] : fin3)
     {
-        if (seq.size() >= args.w_size.get())
+        if (seq.size() >= config.w_size.get())
         {
-            for (auto && minHash : seqan3::views::minimiser_hash(seq, args.shape, args.w_size, args.s))
+            for (auto && minHash : seqan3::views::minimiser_hash(seq, config.shape, config.w_size, config.s))
                 include_table.insert(minHash);
         }
     }
@@ -107,7 +107,7 @@ uint8_t calculate_cutoff(std::filesystem::path sequence_file, int samples)
 }
 
 // Fill hash table with minimisers greater than the cutoff.
-void fill_hash_table(min_arguments const & args,
+void fill_hash_table(configuration const & config,
                      seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> & fin,
                      robin_hood::unordered_node_map<uint64_t, uint16_t> & hash_table,
                      robin_hood::unordered_node_map<uint64_t, uint8_t> & cutoff_table,
@@ -132,7 +132,7 @@ void fill_hash_table(min_arguments const & args,
 
     for (auto & [seq] : fin)
     {
-        for (auto && minHash : seqan3::views::minimiser_hash(seq, args.shape, args.w_size, args.s))
+        for (auto && minHash : seqan3::views::minimiser_hash(seq, config.shape, config.w_size, config.s))
         {
             if (exclusion_check_in_empty_exclude_set || check_value_in_tables(minHash))
             {
@@ -168,7 +168,7 @@ void fill_hash_table(min_arguments const & args,
     }
 }
 
-void fill_hash_table_parallel(min_arguments const & args,
+void fill_hash_table_parallel(configuration const & config,
                               seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> & fin,
                               robin_hood::unordered_node_map<uint64_t, uint16_t> & hash_table,
                               robin_hood::unordered_node_map<uint64_t, uint8_t> & cutoff_table,
@@ -186,7 +186,7 @@ void fill_hash_table_parallel(min_arguments const & args,
     // Step 4: Provid simple table with minimiser value and count pair
     // Step 5: Store all non-referenced minimiser values per batch
 
-    size_t thread_count = args.threads;
+    size_t thread_count = config.threads;
     // Run thread: block execution and load next 10000 sequences.
 
     auto seq_file_it = std::ranges::begin(fin);
@@ -279,9 +279,9 @@ void fill_hash_table_parallel(min_arguments const & args,
 
             // Construct the set of all minimisers for all sequences.
             std::vector<uint64_t> minimisers{};
-            minimisers.reserve(sequence_batch.size() * (sequence_batch[0].size() - args.w_size.get() + 1));
+            minimisers.reserve(sequence_batch.size() * (sequence_batch[0].size() - config.w_size.get() + 1));
             for (auto & sequence : sequence_batch)
-                std::ranges::move(sequence | seqan3::views::minimiser_hash(args.shape, args.w_size, args.s),
+                std::ranges::move(sequence | seqan3::views::minimiser_hash(config.shape, config.w_size, config.s),
                                   std::back_inserter(minimisers));
 
             auto orphaned_minimiser = count_minimiser(thread_local_hash_tables[thread_id], std::move(minimisers));
@@ -382,31 +382,31 @@ void fill_hash_table_parallel(min_arguments const & args,
             thread.join();
 }
 
-void count_genome(min_arguments const & args, std::filesystem::path include_file, std::filesystem::path exclude_file)
+void count_genome(configuration & config)
 {
     robin_hood::unordered_set<uint64_t> include_set_table{};
     robin_hood::unordered_set<uint64_t> exclude_set_table{};
     std::ofstream outfile;
 
-    if (exclude_file != "")
+    if (config.exclude_file != "")
     {
-        seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{exclude_file};
+        seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{config.exclude_file};
         for (auto & [seq] : fin)
         {
-            if (seq.size() >= args.w_size.get())
+            if (seq.size() >= config.w_size.get())
             {
-                for (auto && minHash : seqan3::views::minimiser_hash(seq, args.shape, args.w_size, args.s))
+                for (auto && minHash : seqan3::views::minimiser_hash(seq, config.shape, config.w_size, config.s))
                     exclude_set_table.insert(minHash);
             }
         }
     }
 
-    seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin2{include_file};
+    seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin2{config.genome_file};
     for (auto & [seq] : fin2)
     {
-        if (seq.size() >= args.w_size.get())
+        if (seq.size() >= config.w_size.get())
         {
-            for (auto && minHash : seqan3::views::minimiser_hash(seq, args.shape, args.w_size, args.s))
+            for (auto && minHash : seqan3::views::minimiser_hash(seq, config.shape, config.w_size, config.s))
             {
                 if (!(exclude_set_table.contains(minHash)))
                     include_set_table.insert(minHash);
@@ -415,7 +415,7 @@ void count_genome(min_arguments const & args, std::filesystem::path include_file
     }
 
     // Write minimiser to binary
-    outfile.open(std::string{args.path_out} + std::string{include_file.stem()} + ".genome", std::ios::binary);
+    outfile.open(std::string{config.path_out} + std::string{config.genome_file.stem()} + ".genome", std::ios::binary);
 
     for (auto && hash : include_set_table)
     {
@@ -424,11 +424,7 @@ void count_genome(min_arguments const & args, std::filesystem::path include_file
     outfile.close();
 }
 
-void count(min_arguments const & args,
-           std::vector<std::filesystem::path> sequence_files,
-           std::filesystem::path include_file,
-           std::filesystem::path genome_file,
-           bool paired)
+void count(configuration & config)
 {
     robin_hood::unordered_node_map<uint64_t, uint16_t> hash_table{};
     // Create a smaller cutoff table to save RAM, this cutoff table is only used for constructing the hash table
@@ -442,7 +438,7 @@ void count(min_arguments const & args,
     std::ofstream outfile;
 
     // Read minimiser from binary
-    infile.open(genome_file, std::ios::binary);
+    infile.open(config.genome_file, std::ios::binary);
     uint64_t minimiser;
     while (infile.read((char *)&minimiser, sizeof(minimiser)))
     {
@@ -450,32 +446,32 @@ void count(min_arguments const & args,
     }
     infile.close();
 
-    for (unsigned i = 0; i < sequence_files.size(); i++)
+    for (unsigned i = 0; i < config.sequence_files.size(); i++)
     {
 
-        if (paired)
+        if (config.paired)
         {
-            seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{sequence_files[i]};
-            fill_hash_table(args, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
+            seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{config.sequence_files[i]};
+            fill_hash_table(config, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
             i++;
-            fin = sequence_files[i];
-            fill_hash_table(args, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
+            fin = config.sequence_files[i];
+            fill_hash_table(config, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
         }
         else
         {
-            seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{sequence_files[i]};
-            fill_hash_table(args, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
+            seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{config.sequence_files[i]};
+            fill_hash_table(config, fin, hash_table, cutoff_table, include_set_table, exclude_set_table, true);
         }
         cutoff_table.clear();
 
-        outfile.open(std::string{args.path_out} + std::string{sequence_files[i].stem()} + ".count.out");
+        outfile.open(std::string{config.path_out} + std::string{config.sequence_files[i].stem()} + ".count.out");
         seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::id, seqan3::field::seq>> fin2{
-            include_file};
+            config.include_file};
         for (auto & [id, seq] : fin2)
         {
-            if (seq.size() >= args.w_size.get())
+            if (seq.size() >= config.w_size.get())
             {
-                for (auto && minHash : seqan3::views::minimiser_hash(seq, args.shape, args.w_size, args.s))
+                for (auto && minHash : seqan3::views::minimiser_hash(seq, config.shape, config.w_size, config.s))
                     counter.push_back(hash_table[minHash]);
                 std::nth_element(counter.begin(), counter.begin() + counter.size() / 2, counter.end());
                 expression = counter[counter.size() / 2];
@@ -495,16 +491,16 @@ void read_binary(std::filesystem::path filename, robin_hood::unordered_node_map<
     // Skip the first 22 bytes:
     //   8 num_of_minimisers
     //   1 cutoff
-    //   1 args.k
-    //   4 args.w_size
-    //   8 args.s
+    //   1 config.k
+    //   4 config.w_size
+    //   8 config.s
     fin.ignore(22);
 
     bool ungapped;
     fin.read((char *)&ungapped, sizeof(ungapped));
     if (!ungapped)
     {
-        fin.ignore(8); // args.shape
+        fin.ignore(8); // config.shape
     }
 
     uint64_t minimiser;
@@ -519,7 +515,7 @@ void read_binary(std::filesystem::path filename, robin_hood::unordered_node_map<
     fin.close();
 }
 
-void read_binary_start(min_arguments & args,
+void read_binary_start(configuration & config,
                        std::filesystem::path filename,
                        uint64_t & num_of_minimisers,
                        uint8_t & cutoff)
@@ -528,19 +524,19 @@ void read_binary_start(min_arguments & args,
 
     fin.read((char *)&num_of_minimisers, sizeof(num_of_minimisers));
     fin.read((char *)&cutoff, sizeof(cutoff));
-    fin.read((char *)&args.k, sizeof(args.k));
-    fin.read((char *)&args.w_size, sizeof(args.w_size));
-    fin.read((char *)&args.s, sizeof(args.s));
+    fin.read((char *)&config.k, sizeof(config.k));
+    fin.read((char *)&config.w_size, sizeof(config.w_size));
+    fin.read((char *)&config.s, sizeof(config.s));
 
     bool ungapped;
     fin.read((char *)&ungapped, sizeof(ungapped));
     if (ungapped)
     {
-        args.shape = seqan3::ungapped{args.k};
+        config.shape = seqan3::ungapped{config.k};
     }
     else
     {
-        fin.read((char *)&args.shape, sizeof(args.shape));
+        fin.read((char *)&config.shape, sizeof(config.shape));
     }
 
     fin.close();
@@ -588,7 +584,7 @@ void check_cutoffs_samples(std::vector<std::filesystem::path> const & sequence_f
     if (cutoffs.size() == 1) // If one cutoff is given, every experiment gets this cutoff.
         cutoffs.assign(samples.size(), cutoffs[0]);
 
-    // If sum of minimiser_args.samples is not equal to number of files, throw error
+    // If sum of config.samples is not equal to number of files, throw error
     else if (std::reduce(samples.begin(), samples.end()) != sequence_files.size())
         throw std::invalid_argument{"Incorrect command line input for multiple-samples."};
 }
@@ -720,11 +716,11 @@ void get_filsize_per_expression_level(std::filesystem::path filename,
 template <bool samplewise, bool minimiser_files_given = true>
 void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
                 std::vector<double> const & fprs,
-                estimate_ibf_arguments & ibf_args,
+                configuration & ibf_args,
                 std::vector<uint8_t> & cutoffs,
                 size_t num_hash = 1,
                 std::filesystem::path expression_by_genome_file = "",
-                minimiser_arguments const & minimiser_args = {})
+                configuration const & config = {})
 {
 
     size_t const num_files = [&]() constexpr
@@ -732,7 +728,7 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
         if constexpr (minimiser_files_given)
             return minimiser_files.size();
         else
-            return minimiser_args.samples.size();
+            return config.samples.size();
     }();
 
     std::vector<std::vector<uint16_t>> expressions{};
@@ -752,14 +748,14 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
 
     if constexpr (!minimiser_files_given)
     {
-        if (minimiser_args.include_file != "")
-            get_include_set_table(ibf_args, minimiser_args.include_file, include_set_table);
-        if (minimiser_args.exclude_file != "")
-            get_include_set_table(ibf_args, minimiser_args.exclude_file, exclude_set_table);
+        if (config.include_file != "")
+            get_include_set_table(ibf_args, config.include_file, include_set_table);
+        if (config.exclude_file != "")
+            get_include_set_table(ibf_args, config.exclude_file, exclude_set_table);
     }
 
     // I/O inside OpenMP region
-    if (minimiser_args.ram_friendly)
+    if (config.ram_friendly)
     {
         seqan3::contrib::bgzf_thread_count = ibf_args.threads;
         omp_set_num_threads(1);
@@ -797,12 +793,11 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
         {
             // Estimate sizes on filesize, assuming every byte translates to one letter (which is obiously not true,
             // because ids contain letters as well), so size might be overestimated. TODO: Find a better estimation!
-            size_t const file_iterator =
-                std::reduce(minimiser_args.samples.begin(), minimiser_args.samples.begin() + i);
+            size_t const file_iterator = std::reduce(config.samples.begin(), config.samples.begin() + i);
 
             // Determine cutoffs
             if (calculate_cutoffs)
-                cutoffs.push_back(calculate_cutoff(minimiser_files[file_iterator], minimiser_args.samples[i]));
+                cutoffs.push_back(calculate_cutoff(minimiser_files[file_iterator], config.samples[i]));
 
             bool const is_compressed = minimiser_files[file_iterator].extension() == ".gz"
                                     || minimiser_files[file_iterator].extension() == ".bgzf"
@@ -811,7 +806,7 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
                                                                          minimiser_files[file_iterator].stem())
                                                 : check_for_fasta_format(seqan3::format_fasta::file_extensions,
                                                                          minimiser_files[file_iterator].extension());
-            filesize = std::filesystem::file_size(minimiser_files[file_iterator]) * minimiser_args.samples[i]
+            filesize = std::filesystem::file_size(minimiser_files[file_iterator]) * config.samples[i]
                      * (is_fasta ? 2 : 1) / (is_compressed ? 1 : 3);
             filesize /= ((cutoffs[i] + 1) * (is_fasta ? 1 : 2));
             // ^^ why divide? --> estimate the number of minimisers
@@ -903,20 +898,19 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
         }
         else
         {
-            size_t const file_iterator =
-                std::reduce(minimiser_args.samples.begin(), minimiser_args.samples.begin() + i);
-            for (size_t f = 0; f < minimiser_args.samples[i]; f++)
+            size_t const file_iterator = std::reduce(config.samples.begin(), config.samples.begin() + i);
+            for (size_t f = 0; f < config.samples[i]; f++)
             {
                 seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{
                     minimiser_files[file_iterator + f]};
-                if (minimiser_args.ram_friendly)
+                if (config.ram_friendly)
                     fill_hash_table_parallel(ibf_args,
                                              fin,
                                              hash_table,
                                              cutoff_table,
                                              include_set_table,
                                              exclude_set_table,
-                                             (minimiser_args.include_file != ""),
+                                             (config.include_file != ""),
                                              cutoffs[i]);
                 else
                     fill_hash_table(ibf_args,
@@ -925,7 +919,7 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
                                     cutoff_table,
                                     include_set_table,
                                     exclude_set_table,
-                                    (minimiser_args.include_file != ""),
+                                    (config.include_file != ""),
                                     cutoffs[i]);
             }
             cutoff_table.clear();
@@ -1026,81 +1020,84 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
 }
 
 // Create ibfs
-std::vector<uint16_t> ibf(std::vector<std::filesystem::path> const & sequence_files,
-                          estimate_ibf_arguments & ibf_args,
-                          minimiser_arguments & minimiser_args,
-                          std::vector<double> & fpr,
-                          std::vector<uint8_t> & cutoffs,
-                          std::filesystem::path const expression_by_genome_file,
-                          size_t num_hash)
+std::vector<uint16_t> ibf(configuration & config)
 {
     // Declarations
     robin_hood::unordered_node_map<uint64_t, uint16_t> hash_table{}; // Storage for minimisers
     seqan3::concatenated_sequences<seqan3::dna4_vector> sequences;   // Storage for sequences in experiment files
 
-    check_cutoffs_samples(sequence_files, minimiser_args.paired, minimiser_args.samples, cutoffs);
+    check_cutoffs_samples(config.sequence_files, config.paired, config.samples, config.cutoffs);
 
-    check_expression(ibf_args.expression_thresholds, ibf_args.number_expression_thresholds, expression_by_genome_file);
-    check_fpr(ibf_args.number_expression_thresholds, fpr);
+    check_expression(config.expression_thresholds,
+                     config.number_expression_thresholds,
+                     config.expression_by_genome_file);
+    check_fpr(config.number_expression_thresholds, config.fpr);
 
-    ibf_args.samplewise = (ibf_args.expression_thresholds.size() == 0);
+    config.samplewise = (config.expression_thresholds.size() == 0);
 
     // Store experiment names
-    if (minimiser_args.experiment_names)
+    if (config.experiment_names)
     {
         std::ofstream outfile;
-        outfile.open(std::string{ibf_args.path_out} + "Stored_Files.txt");
-        for (size_t i = 0; i < minimiser_args.samples.size(); i++)
+        outfile.open(std::string{config.path_out} + "Stored_Files.txt");
+        for (size_t i = 0; i < config.samples.size(); i++)
         {
-            outfile << sequence_files[std::reduce(minimiser_args.samples.begin(), minimiser_args.samples.begin() + i)]
-                    << "\n";
+            outfile << config.sequence_files[std::reduce(config.samples.begin(), config.samples.begin() + i)] << "\n";
         }
         outfile.close();
     }
 
-    if (ibf_args.samplewise)
-        ibf_helper<true, false>(sequence_files,
-                                fpr,
-                                ibf_args,
-                                cutoffs,
-                                num_hash,
-                                expression_by_genome_file,
-                                minimiser_args);
+    if (config.samplewise)
+        ibf_helper<true, false>(config.sequence_files,
+                                config.fpr,
+                                config,
+                                config.cutoffs,
+                                config.num_hash,
+                                config.expression_by_genome_file,
+                                config);
     else
-        ibf_helper<false, false>(sequence_files,
-                                 fpr,
-                                 ibf_args,
-                                 cutoffs,
-                                 num_hash,
-                                 expression_by_genome_file,
-                                 minimiser_args);
+        ibf_helper<false, false>(config.sequence_files,
+                                 config.fpr,
+                                 config,
+                                 config.cutoffs,
+                                 config.num_hash,
+                                 config.expression_by_genome_file,
+                                 config);
 
-    store_args(ibf_args, std::string{ibf_args.path_out} + "IBF_Data");
+    config.store(std::string{config.path_out} + "IBF_Data");
 
-    return ibf_args.expression_thresholds;
+    return config.expression_thresholds;
 }
 
 // Create ibfs based on the minimiser file
-std::vector<uint16_t> ibf(std::vector<std::filesystem::path> const & minimiser_files,
-                          estimate_ibf_arguments & ibf_args,
-                          std::vector<double> & fpr,
-                          std::filesystem::path const expression_by_genome_file,
-                          size_t num_hash)
+std::vector<uint16_t> ibf_min(configuration & config)
 {
-    check_expression(ibf_args.expression_thresholds, ibf_args.number_expression_thresholds, expression_by_genome_file);
-    check_fpr(ibf_args.number_expression_thresholds, fpr);
+    check_expression(config.expression_thresholds,
+                     config.number_expression_thresholds,
+                     config.expression_by_genome_file);
+    check_fpr(config.number_expression_thresholds, config.fpr);
 
-    ibf_args.samplewise = (ibf_args.expression_thresholds.size() == 0);
+    config.samplewise = (config.expression_thresholds.size() == 0);
 
     std::vector<uint8_t> cutoffs{};
-    if (ibf_args.samplewise)
-        ibf_helper<true>(minimiser_files, fpr, ibf_args, cutoffs, num_hash, expression_by_genome_file);
+    if (config.samplewise)
+        ibf_helper<true>(config.sequence_files,
+                         config.fpr,
+                         config,
+                         config.cutoffs,
+                         config.num_hash,
+                         config.expression_by_genome_file);
     else
-        ibf_helper<false>(minimiser_files, fpr, ibf_args, cutoffs, num_hash, expression_by_genome_file);
+        ibf_helper<false>(config.sequence_files,
+                          config.fpr,
+                          config,
+                          config.cutoffs,
+                          config.num_hash,
+                          config.expression_by_genome_file);
 
-    store_args(ibf_args, std::string{ibf_args.path_out} + "IBF_Data");
+    config.store(std::string{config.path_out} + "IBF_Data");
 
-    return ibf_args.expression_thresholds;
+    return config.expression_thresholds;
 }
 
 // Reads the level file ibf creates
@@ -1146,11 +1143,11 @@ void read_levels(std::vector<std::vector<float_or_int>> & expressions, std::file
 // Actual insertion
 template <bool samplewise, bool minimiser_files_given = true>
 void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
-                   estimate_ibf_arguments & ibf_args,
+                   configuration & ibf_args,
                    std::filesystem::path path_in,
                    std::vector<uint8_t> & cutoffs,
                    std::filesystem::path expression_by_genome_file = "",
-                   minimiser_arguments const & minimiser_args = {})
+                   configuration const & config = {})
 {
     size_t old_bin_number{};
     size_t new_bin_number{};
@@ -1160,7 +1157,7 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
     if constexpr (minimiser_files_given)
         num_files = minimiser_files.size();
     else
-        num_files = minimiser_args.samples.size();
+        num_files = config.samples.size();
 
     std::vector<std::vector<uint16_t>> expressions{};
     std::vector<std::vector<uint64_t>> counts_per_level{};
@@ -1183,14 +1180,14 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
 
     if constexpr (!minimiser_files_given)
     {
-        if (minimiser_args.include_file != "")
-            get_include_set_table(ibf_args, minimiser_args.include_file, include_set_table);
-        if (minimiser_args.exclude_file != "")
-            get_include_set_table(ibf_args, minimiser_args.exclude_file, exclude_set_table);
+        if (config.include_file != "")
+            get_include_set_table(ibf_args, config.include_file, include_set_table);
+        if (config.exclude_file != "")
+            get_include_set_table(ibf_args, config.exclude_file, exclude_set_table);
     }
 
     // I/O inside OpenMP region
-    if (minimiser_args.ram_friendly)
+    if (config.ram_friendly)
     {
         seqan3::contrib::bgzf_thread_count = ibf_args.threads;
         omp_set_num_threads(1);
@@ -1271,12 +1268,11 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
         {
             // Estimate sizes on filesize, assuming every byte translates to one letter (which is obiously not true,
             // because ids contain letters as well), so size might be overestimated. TODO: Find a better estimation!
-            size_t const file_iterator =
-                std::reduce(minimiser_args.samples.begin(), minimiser_args.samples.begin() + i);
+            size_t const file_iterator = std::reduce(config.samples.begin(), config.samples.begin() + i);
             uint64_t filesize{};
             // Determine cutoffs
             if (calculate_cutoffs)
-                cutoffs.push_back(calculate_cutoff(minimiser_files[file_iterator], minimiser_args.samples[i]));
+                cutoffs.push_back(calculate_cutoff(minimiser_files[file_iterator], config.samples[i]));
 
             bool const is_compressed = minimiser_files[file_iterator].extension() == ".gz"
                                     || minimiser_files[file_iterator].extension() == ".bgzf"
@@ -1285,22 +1281,22 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
                                                                          minimiser_files[file_iterator].stem())
                                                 : check_for_fasta_format(seqan3::format_fasta::file_extensions,
                                                                          minimiser_files[file_iterator].extension());
-            filesize = std::filesystem::file_size(minimiser_files[file_iterator]) * minimiser_args.samples[i]
+            filesize = std::filesystem::file_size(minimiser_files[file_iterator]) * config.samples[i]
                      * (is_fasta ? 2 : 1) / (is_compressed ? 1 : 3);
             filesize = filesize / ((cutoffs[i] + 1) * (is_fasta ? 1 : 2));
 
-            for (size_t f = 0; f < minimiser_args.samples[i]; f++)
+            for (size_t f = 0; f < config.samples[i]; f++)
             {
                 seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{
                     minimiser_files[file_iterator + f]};
-                if (minimiser_args.ram_friendly)
+                if (config.ram_friendly)
                     fill_hash_table_parallel(ibf_args,
                                              fin,
                                              hash_table,
                                              cutoff_table,
                                              include_set_table,
                                              exclude_set_table,
-                                             (minimiser_args.include_file != ""),
+                                             (config.include_file != ""),
                                              cutoffs[i]);
                 else
                     fill_hash_table(ibf_args,
@@ -1309,7 +1305,7 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
                                     cutoff_table,
                                     include_set_table,
                                     exclude_set_table,
-                                    (minimiser_args.include_file != ""),
+                                    (config.include_file != ""),
                                     cutoffs[i]);
             }
             cutoff_table.clear();
@@ -1440,93 +1436,88 @@ void insert_helper(std::vector<std::filesystem::path> const & minimiser_files,
 }
 
 // Insert into ibfs
-std::vector<uint16_t> insert(std::vector<std::filesystem::path> const & sequence_files,
-                             estimate_ibf_arguments & ibf_args,
-                             minimiser_arguments & minimiser_args,
-                             std::vector<uint8_t> & cutoffs,
-                             std::filesystem::path const expression_by_genome_file,
-                             std::filesystem::path path_in,
-                             bool samplewise)
+std::vector<uint16_t> insert(configuration & config)
 {
     // Declarations
     robin_hood::unordered_node_map<uint64_t, uint16_t> hash_table{}; // Storage for minimisers
     seqan3::concatenated_sequences<seqan3::dna4_vector> sequences;   // Storage for sequences in experiment files
 
-    check_cutoffs_samples(sequence_files, minimiser_args.paired, minimiser_args.samples, cutoffs);
-    load_args(ibf_args, std::string{path_in} + "IBF_Data");
+    check_cutoffs_samples(config.sequence_files, config.paired, config.samples, config.cutoffs);
+    config.load(std::string{config.path_in} + "IBF_Data");
 
-    if (samplewise)
-        insert_helper<true, false>(sequence_files,
-                                   ibf_args,
-                                   path_in,
-                                   cutoffs,
-                                   expression_by_genome_file,
-                                   minimiser_args);
+    if (config.samplewise)
+        insert_helper<true, false>(config.sequence_files,
+                                   config,
+                                   config.path_in,
+                                   config.cutoffs,
+                                   config.expression_by_genome_file,
+                                   config);
     else
-        insert_helper<false, false>(sequence_files,
-                                    ibf_args,
-                                    path_in,
-                                    cutoffs,
-                                    expression_by_genome_file,
-                                    minimiser_args);
+        insert_helper<false, false>(config.sequence_files,
+                                    config,
+                                    config.path_in,
+                                    config.cutoffs,
+                                    config.expression_by_genome_file,
+                                    config);
 
-    store_args(ibf_args, std::string{ibf_args.path_out} + "IBF_Data");
-    return ibf_args.expression_thresholds;
+    config.store(std::string{config.path_out} + "IBF_Data");
+    return config.expression_thresholds;
 }
 
 // Insert into ibfs based on the minimiser file
-std::vector<uint16_t> insert(std::vector<std::filesystem::path> const & minimiser_files,
-                             estimate_ibf_arguments & ibf_args,
-                             std::filesystem::path const expression_by_genome_file,
-                             std::filesystem::path path_in,
-                             bool samplewise)
+std::vector<uint16_t> insert_min(configuration & config)
 {
     std::vector<uint8_t> cutoffs{};
-    load_args(ibf_args, std::string{path_in} + "IBF_Data");
-    if (samplewise)
-        insert_helper<true>(minimiser_files, ibf_args, path_in, cutoffs, expression_by_genome_file);
+    config.load(std::string{config.path_in} + "IBF_Data");
+    if (config.samplewise)
+        insert_helper<true>(config.sequence_files,
+                            config,
+                            config.path_in,
+                            config.cutoffs,
+                            config.expression_by_genome_file);
     else
-        insert_helper<false>(minimiser_files, ibf_args, path_in, cutoffs, expression_by_genome_file);
+        insert_helper<false>(config.sequence_files,
+                             config,
+                             config.path_in,
+                             config.cutoffs,
+                             config.expression_by_genome_file);
 
-    store_args(ibf_args, std::string{ibf_args.path_out} + "IBF_Data");
+    config.store(std::string{config.path_out} + "IBF_Data");
 
-    return ibf_args.expression_thresholds;
+    return config.expression_thresholds;
 }
 
 // Delete from ibfs
-void delete_bin(std::vector<uint64_t> const & delete_files,
-                estimate_ibf_arguments & ibf_args,
-                std::filesystem::path path_in,
-                bool samplewise)
+void delete_bin(configuration & config)
 {
-    load_args(ibf_args, std::string{path_in} + "IBF_Data");
+    config.load(std::string{config.path_in} + "IBF_Data");
 
     std::vector<seqan3::bin_index> bins_to_delete{};
-    for (size_t i = 0; i < delete_files.size(); i++)
-        bins_to_delete.push_back(seqan3::bin_index{delete_files[i]});
+    for (size_t i = 0; i < config.delete_files.size(); i++)
+        bins_to_delete.push_back(seqan3::bin_index{config.delete_files[i]});
 
-    omp_set_num_threads(ibf_args.threads);
+    omp_set_num_threads(config.threads);
 
 // Delete bins from ibfs
 #pragma omp parallel
-    for (unsigned i = 0; i < ibf_args.number_expression_thresholds; i++)
+    for (unsigned i = 0; i < config.number_expression_thresholds; i++)
     {
         std::filesystem::path filename;
-        if (samplewise)
-            filename = path_in.string() + "IBF_Level_" + std::to_string(i);
+        if (config.samplewise)
+            filename = config.path_in.string() + "IBF_Level_" + std::to_string(i);
         else
-            filename = path_in.string() + "IBF_" + std::to_string(ibf_args.expression_thresholds[i]);
+            filename = config.path_in.string() + "IBF_" + std::to_string(config.expression_thresholds[i]);
 
         seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
         load_ibf(ibf, filename);
         ibf.clear(bins_to_delete);
 
-        if (samplewise)
-            filename = ibf_args.path_out.string() + "IBF_Level_" + std::to_string(i);
+        if (config.samplewise)
+            filename = config.path_out.string() + "IBF_Level_" + std::to_string(i);
         else
-            filename = ibf_args.path_out.string() + "IBF_" + std::to_string(ibf_args.expression_thresholds[i]);
+            filename = config.path_out.string() + "IBF_" + std::to_string(config.expression_thresholds[i]);
 
-        if (ibf_args.compressed)
+        if (config.compressed)
         {
             seqan3::interleaved_bloom_filter<seqan3::data_layout::compressed> ibfc{std::move(ibf)};
             store_ibf(ibfc, filename);
@@ -1539,8 +1530,8 @@ void delete_bin(std::vector<uint64_t> const & delete_files,
 
     // Store deleted bins
     std::ofstream outfile;
-    outfile.open(std::string{ibf_args.path_out} + "IBF_Deleted");
-    for (auto & deleted : delete_files)
+    outfile.open(std::string{config.path_out} + "IBF_Deleted");
+    for (auto & deleted : config.delete_files)
     {
         outfile << deleted << ",";
     }
@@ -1553,8 +1544,8 @@ template <bool parallel = false>
 void calculate_minimiser(std::vector<std::filesystem::path> const & sequence_files,
                          robin_hood::unordered_set<uint64_t> const & include_set_table,
                          robin_hood::unordered_set<uint64_t> const & exclude_set_table,
-                         min_arguments const & args,
-                         minimiser_arguments const & minimiser_args,
+                         configuration const & config,
+                         configuration const & config2,
                          unsigned const i,
                          std::vector<uint8_t> & cutoffs)
 {
@@ -1565,61 +1556,61 @@ void calculate_minimiser(std::vector<std::filesystem::path> const & sequence_fil
     // and afterwards discarded.
     robin_hood::unordered_node_map<uint64_t, uint8_t> cutoff_table;
     std::ofstream outfile;
-    size_t const file_iterator = std::reduce(minimiser_args.samples.begin(), minimiser_args.samples.begin() + i);
+    size_t const file_iterator = std::reduce(config.samples.begin(), config.samples.begin() + i);
 
     bool const calculate_cutoffs = cutoffs.empty();
 
     if (calculate_cutoffs)
-        cutoff = calculate_cutoff(sequence_files[file_iterator], minimiser_args.samples[i]);
+        cutoff = calculate_cutoff(config.sequence_files[file_iterator], config.samples[i]);
     else
         cutoff = cutoffs[i];
 
     // Fill hash_table with minimisers.
-    for (size_t f = 0; f < minimiser_args.samples[i]; f++)
+    for (size_t f = 0; f < config.samples[i]; f++)
     {
         seqan3::sequence_file_input<my_traits, seqan3::fields<seqan3::field::seq>> fin{
-            sequence_files[file_iterator + f]};
+            config.sequence_files[file_iterator + f]};
         if constexpr (parallel)
         {
-            fill_hash_table_parallel(args,
+            fill_hash_table_parallel(config,
                                      fin,
                                      hash_table,
                                      cutoff_table,
                                      include_set_table,
                                      exclude_set_table,
-                                     (minimiser_args.include_file != ""),
+                                     (config.include_file != ""),
                                      cutoff);
         }
         else
         {
-            fill_hash_table(args,
+            fill_hash_table(config,
                             fin,
                             hash_table,
                             cutoff_table,
                             include_set_table,
                             exclude_set_table,
-                            (minimiser_args.include_file != ""),
+                            (config.include_file != ""),
                             cutoff);
         }
     }
     cutoff_table.clear();
 
     // Write minimiser and their counts to binary
-    outfile.open(std::string{args.path_out} + std::string{sequence_files[file_iterator].stem()} + ".minimiser",
+    outfile.open(std::string{config.path_out} + std::string{config.sequence_files[file_iterator].stem()} + ".minimiser",
                  std::ios::binary);
     auto hash_size = hash_table.size();
 
     outfile.write(reinterpret_cast<char const *>(&hash_size), sizeof(hash_size));
     outfile.write(reinterpret_cast<char const *>(&cutoff), sizeof(cutoff));
-    outfile.write(reinterpret_cast<char const *>(&args.k), sizeof(args.k));
-    outfile.write(reinterpret_cast<char const *>(&args.w_size), sizeof(args.w_size));
-    outfile.write(reinterpret_cast<char const *>(&args.s), sizeof(args.s));
-    bool ungapped = args.shape.all();
+    outfile.write(reinterpret_cast<char const *>(&config.k), sizeof(config.k));
+    outfile.write(reinterpret_cast<char const *>(&config.w_size), sizeof(config.w_size));
+    outfile.write(reinterpret_cast<char const *>(&config.s), sizeof(config.s));
+    bool ungapped = config.shape.all();
     outfile.write(reinterpret_cast<char const *>(&ungapped), sizeof(ungapped));
 
     if (!ungapped)
     {
-        outfile.write(reinterpret_cast<char const *>(&args.shape), sizeof(args.shape));
+        outfile.write(reinterpret_cast<char const *>(&config.shape), sizeof(config.shape));
     }
 
     for (auto && hash : hash_table)
@@ -1630,49 +1621,52 @@ void calculate_minimiser(std::vector<std::filesystem::path> const & sequence_fil
     outfile.close();
 }
 
-void minimiser(std::vector<std::filesystem::path> const & sequence_files,
-               min_arguments const & args,
-               minimiser_arguments & minimiser_args,
-               std::vector<uint8_t> & cutoffs)
+void minimiser(configuration & config)
 {
     // Declarations
     robin_hood::unordered_set<uint64_t> include_set_table{}; // Storage for minimisers in include file
     robin_hood::unordered_set<uint64_t> exclude_set_table{}; // Storage for minimisers in exclude file
 
-    check_cutoffs_samples(sequence_files, minimiser_args.paired, minimiser_args.samples, cutoffs);
+    check_cutoffs_samples(config.sequence_files, config.paired, config.samples, config.cutoffs);
 
-    if (minimiser_args.include_file != "")
-        get_include_set_table(args, minimiser_args.include_file, include_set_table);
-    if (minimiser_args.exclude_file != "")
-        get_include_set_table(args, minimiser_args.exclude_file, exclude_set_table);
+    if (config.include_file != "")
+        get_include_set_table(config, config.include_file, include_set_table);
+    if (config.exclude_file != "")
+        get_include_set_table(config, config.exclude_file, exclude_set_table);
 
-    size_t const chunk_size = std::clamp<size_t>(std::bit_ceil(minimiser_args.samples.size() / args.threads), 1u, 64u);
+    size_t const chunk_size = std::clamp<size_t>(std::bit_ceil(config.samples.size() / config.threads), 1u, 64u);
 
     // Add minimisers to ibf
-    if (minimiser_args.ram_friendly)
+    if (config.ram_friendly)
     {
-        seqan3::contrib::bgzf_thread_count = args.threads;
-        for (size_t i = 0; i < minimiser_args.samples.size(); i++)
+        seqan3::contrib::bgzf_thread_count = config.threads;
+        for (size_t i = 0; i < config.samples.size(); i++)
         {
-            calculate_minimiser<true>(sequence_files,
+            calculate_minimiser<true>(config.sequence_files,
                                       include_set_table,
                                       exclude_set_table,
-                                      args,
-                                      minimiser_args,
+                                      config,
+                                      config,
                                       i,
-                                      cutoffs);
+                                      config.cutoffs);
         }
     }
     else
     {
         // I/O inside OpenMP region
         seqan3::contrib::bgzf_thread_count = 1u;
-        omp_set_num_threads(args.threads);
+        omp_set_num_threads(config.threads);
 
 #pragma omp parallel for schedule(dynamic, chunk_size)
-        for (size_t i = 0; i < minimiser_args.samples.size(); i++)
+        for (size_t i = 0; i < config.samples.size(); i++)
         {
-            calculate_minimiser(sequence_files, include_set_table, exclude_set_table, args, minimiser_args, i, cutoffs);
+            calculate_minimiser(config.sequence_files,
+                                include_set_table,
+                                exclude_set_table,
+                                config,
+                                config,
+                                i,
+                                config.cutoffs);
         }
     }
 }

@@ -34,14 +34,13 @@ TEST_F(estimate_options_test, fail_no_argument)
 
 TEST_F(estimate_options_test, with_argument)
 {
-    estimate_ibf_arguments ibf_args{};
-    minimiser_arguments minimiser_args{};
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05};
-    std::vector<std::filesystem::path> sequence_files = {data("exp_01.fasta")};
-    ibf_args.path_out = "Test_";
-    std::vector<uint8_t> cutoffs{};
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    configuration config{};
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05};
+    config.sequence_files = {data("exp_01.fasta")};
+    config.path_out = "Test_";
+    config.cutoffs = {};
+    ibf(config);
 
     app_test_result result = execute_app("estimate -i ", "Test_", data("mini_gen.fasta"));
     EXPECT_SUCCESS(result);
@@ -51,14 +50,13 @@ TEST_F(estimate_options_test, with_argument)
 
 TEST_F(estimate_options_test, with_argument_normalization_method)
 {
-    estimate_ibf_arguments ibf_args{};
-    minimiser_arguments minimiser_args{};
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05};
-    std::vector<std::filesystem::path> sequence_files = {data("exp_01.fasta")};
-    ibf_args.path_out = "Test_";
-    std::vector<uint8_t> cutoffs{};
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    configuration config{};
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05};
+    config.sequence_files = {data("exp_01.fasta")};
+    config.path_out = "Test_";
+    config.cutoffs = {};
+    ibf(config);
 
     app_test_result result = execute_app("estimate -m -i ", "Test_", data("mini_gen.fasta"));
     EXPECT_SUCCESS(result);
@@ -68,14 +66,13 @@ TEST_F(estimate_options_test, with_argument_normalization_method)
 
 TEST_F(estimate_options_test, with_argument_out)
 {
-    estimate_ibf_arguments ibf_args{};
-    minimiser_arguments minimiser_args{};
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05};
-    std::vector<std::filesystem::path> sequence_files = {data("exp_01.fasta")};
-    ibf_args.path_out = "Test_";
-    std::vector<uint8_t> cutoffs{};
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    configuration config{};
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05};
+    config.sequence_files = {data("exp_01.fasta")};
+    config.path_out = "Test_";
+    config.cutoffs = {};
+    ibf(config);
 
     app_test_result result = execute_app("estimate -o ", "expressions.out", "-i ", "Test_", data("mini_gen.fasta"));
     EXPECT_SUCCESS(result);

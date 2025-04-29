@@ -15,7 +15,7 @@
 // To prevent issues when running multiple CLI tests in parallel, give each CLI test unique names:
 struct delete_test : public app_test
 {
-    void initialization_args(estimate_ibf_arguments & args)
+    void initialization_args(configuration & args)
     {
         args.compressed = true;
         args.k = 4;
@@ -72,7 +72,7 @@ TEST_F(delete_test, no_given_thresholds)
 {
     std::vector<double> fpr = {0.05};
     std::vector<uint8_t> cutoffs_delete{0, 0};
-    estimate_ibf_arguments ibf_args_delete{};
+    configuration ibf_args_delete{};
     minimiser_arguments minimiser_args_delete{};
     initialization_args(ibf_args_delete);
     ibf_args_delete.compressed = false;
@@ -104,7 +104,7 @@ TEST_F(delete_test, no_given_thresholds)
 
 TEST_F(insert_test, ibf)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.compressed = false;
@@ -118,7 +118,7 @@ TEST_F(insert_test, ibf)
     ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     minimiser_arguments minimiser_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.compressed = false;
@@ -151,7 +151,7 @@ TEST_F(insert_test, ibf)
 
 TEST_F(insert_test, ibf_no_given_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.compressed = false;
@@ -167,7 +167,7 @@ TEST_F(insert_test, ibf_no_given_thresholds)
     std::vector<uint16_t> medians = ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     minimiser_arguments minimiser_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.compressed = false;
@@ -204,7 +204,7 @@ TEST_F(insert_test, ibf_no_given_thresholds)
 
 TEST_F(insert_test, ibf_delete)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.compressed = false;
@@ -220,7 +220,7 @@ TEST_F(insert_test, ibf_delete)
     ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     minimiser_arguments minimiser_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.compressed = false;
@@ -256,7 +256,7 @@ TEST_F(insert_test, ibf_delete)
 
 TEST_F(insert_test, ibf_delete_no_given_threshold)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     ibf_args.compressed = false;
@@ -272,7 +272,7 @@ TEST_F(insert_test, ibf_delete_no_given_threshold)
     ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     minimiser_arguments minimiser_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.compressed = false;
@@ -315,7 +315,7 @@ TEST_F(insert_test, ibf_delete_no_given_threshold)
 
 TEST_F(insert_test, ibfmin)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.expression_thresholds = {1, 2};
     std::vector<double> fpr = {0.05, 0.05};
@@ -325,7 +325,7 @@ TEST_F(insert_test, ibfmin)
                                                          data("mini_example.minimiser")};
     ibf(minimiser_file, ibf_args, fpr);
 
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.expression_thresholds = {1, 2};
     ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
@@ -354,7 +354,7 @@ TEST_F(insert_test, ibfmin)
 
 TEST_F(insert_test, ibfmin_delete)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.expression_thresholds = {1, 2};
     std::vector<double> fpr = {0.05, 0.05};
@@ -365,7 +365,7 @@ TEST_F(insert_test, ibfmin_delete)
                                                          data("mini_example.minimiser")};
     ibf(minimiser_file, ibf_args, fpr);
 
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.expression_thresholds = {1, 2};
     ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
@@ -395,7 +395,7 @@ TEST_F(insert_test, ibfmin_delete)
 
 TEST_F(insert_test, ibfmin_no_given_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.number_expression_thresholds = 2;
     std::vector<double> fpr = {0.05, 0.05};
@@ -406,7 +406,7 @@ TEST_F(insert_test, ibfmin_no_given_thresholds)
 
     ibf(minimiser_file, ibf_args, fpr);
 
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.number_expression_thresholds = 2;
     ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
@@ -442,7 +442,7 @@ TEST_F(insert_test, ibfmin_no_given_thresholds)
 
 TEST_F(insert_test, delete_ibfmin_no_given_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.number_expression_thresholds = 2;
     std::vector<double> fpr = {0.05, 0.05};
@@ -454,7 +454,7 @@ TEST_F(insert_test, delete_ibfmin_no_given_thresholds)
 
     ibf(minimiser_file, ibf_args, fpr);
 
-    estimate_ibf_arguments ibf_args_insert{};
+    configuration ibf_args_insert{};
     initialization_args(ibf_args_insert);
     ibf_args_insert.number_expression_thresholds = 2;
     ibf_args_insert.path_out = "IBFMIN_Insert_Given_Del_";

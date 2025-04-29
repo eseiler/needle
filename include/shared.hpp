@@ -18,6 +18,68 @@ static inline constexpr uint64_t adjust_seed(uint8_t const kmer_size,
     return seed >> (64u - 2u * kmer_size);
 }
 
+struct configuration
+{
+    std::filesystem::path path_in{};
+    std::filesystem::path path_out{"./"};
+    std::filesystem::path search_file;
+    std::filesystem::path genome_file;
+    std::filesystem::path include_file;
+    std::filesystem::path exclude_file{};
+    std::vector<uint64_t> delete_files{};
+    std::vector<std::filesystem::path> sequence_files{};
+    std::filesystem::path expression_by_genome_file{};
+
+    std::vector<size_t> samples{};
+    bool experiment_names = false;
+    bool ram_friendly = false;
+
+    std::vector<uint8_t> cutoffs{};
+    std::vector<double> fpr{};
+    size_t num_hash{1};
+    uint16_t threads{1u};
+    uint8_t k{20};
+    seqan3::seed s{0x8F'3F'73'B5'CF'1C'9A'DEULL};
+    seqan3::shape shape = seqan3::ungapped{k};
+    seqan3::window_size w_size{60};
+
+    bool normalization_method{false};
+    size_t batch_size{1'000'000ULL};
+
+    bool compressed = false;
+    std::vector<uint16_t> expression_thresholds{}; // Expression levels which should be created
+    uint8_t number_expression_thresholds{};        // If set, the expression levels are determined by the program.
+    bool samplewise{false};
+    bool paired = false;
+
+    void store(std::filesystem::path opath) const
+    {
+        std::ofstream os{opath, std::ios::binary};
+        cereal::BinaryOutputArchive oarchive{os};
+        oarchive(*this);
+    }
+
+    void load(std::filesystem::path ipath)
+    {
+        std::ifstream is{ipath, std::ios::binary};
+        cereal::BinaryInputArchive iarchive{is};
+        iarchive(*this);
+    }
+
+    template <typename archive_t>
+    void serialize(archive_t & archive)
+    {
+        archive(k);
+        archive(w_size.get());
+        archive(s.get());
+        archive(shape);
+        archive(compressed);
+        archive(number_expression_thresholds);
+        archive(expression_thresholds);
+        archive(samplewise);
+    }
+};
+
 //!\brief arguments used for all tools
 struct all_arguments
 {

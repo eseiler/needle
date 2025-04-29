@@ -24,14 +24,12 @@ TEST_F(delete_options_test, delete_no_options)
 
 TEST_F(delete_options_test, with_argument)
 {
-    estimate_ibf_arguments ibf_args{};
-    minimiser_arguments minimiser_args{};
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05};
-    std::vector<std::filesystem::path> sequence_files = {data("exp_01.fasta"), data("exp_01.fasta")};
-    ibf_args.path_out = "Test_";
-    std::vector<uint8_t> cutoffs{};
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    configuration config{};
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05};
+    config.sequence_files = {data("exp_01.fasta"), data("exp_01.fasta")};
+    config.path_out = "Test_";
+    ibf(config);
 
     app_test_result result = execute_app("delete -i ", "Test_ ", "0");
     EXPECT_SUCCESS(result);

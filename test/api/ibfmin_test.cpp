@@ -15,7 +15,7 @@
 // To prevent issues when running multiple CLI tests in parallel, give each CLI test unique names:
 struct ibfmin_test : public app_test
 {
-    void initialization_args(estimate_ibf_arguments & args)
+    void initialization_args(configuration & args)
     {
         args.compressed = true;
         args.k = 4;
@@ -28,7 +28,7 @@ struct ibfmin_test : public app_test
 
 TEST_F(ibfmin_test, given_expression_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.expression_thresholds = {1, 2};
     std::vector<double> fpr = {0.05, 0.05};
@@ -58,7 +58,7 @@ TEST_F(ibfmin_test, given_expression_thresholds)
 
 TEST_F(ibfmin_test, given_expression_thresholds_multiple_threads)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.expression_thresholds = {1, 2};
     std::vector<double> fpr = {0.05, 0.05};
@@ -87,7 +87,7 @@ TEST_F(ibfmin_test, given_expression_thresholds_multiple_threads)
 
 TEST_F(ibfmin_test, no_given_expression_thresholds)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.number_expression_thresholds = 2;
     std::vector<double> fpr = {0.0025, 0.0025};
@@ -116,7 +116,7 @@ TEST_F(ibfmin_test, no_given_expression_thresholds)
 
 TEST_F(ibfmin_test, expression_thresholds_by_genome)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.number_expression_thresholds = 1;
     std::vector<double> fpr = {0.05};
@@ -145,7 +145,7 @@ TEST_F(ibfmin_test, expression_thresholds_by_genome)
 
 TEST_F(ibfmin_test, no_given_expression_thresholds_multiple_threads)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     initialization_args(ibf_args);
     ibf_args.number_expression_thresholds = 2;
     std::vector<double> fpr = {0.0025, 0.0025};
@@ -174,7 +174,7 @@ TEST_F(ibfmin_test, no_given_expression_thresholds_multiple_threads)
 
 TEST_F(ibfmin_test, different_shape)
 {
-    estimate_ibf_arguments ibf_args{};
+    configuration ibf_args{};
     minimiser_arguments minimiser_args{};
     initialization_args(ibf_args);
     std::vector<uint8_t> cutoffs = {0};
