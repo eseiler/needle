@@ -70,17 +70,16 @@ struct insert_test : public delete_test
 
 TEST_F(delete_test, no_given_thresholds)
 {
-    std::vector<double> fpr = {0.05};
-    std::vector<uint8_t> cutoffs_delete{0, 0};
-    configuration ibf_args_delete{};
-    minimiser_arguments minimiser_args_delete{};
-    initialization_args(ibf_args_delete);
-    ibf_args_delete.compressed = false;
-    ibf_args_delete.number_expression_thresholds = 2;
-    minimiser_args_delete.experiment_names = false;
-    ibf_args_delete.path_out = "IBF_delete_Exp_";
-    std::vector<std::filesystem::path> sequence_files_delete = {data("mini_example.fasta"), data("mini_example.fasta")};
-    ibf(sequence_files_delete, ibf_args_delete, minimiser_args_delete, fpr, cutoffs_delete);
+    configuration config{};
+    initialization_args(config);
+    config.fpr = {0.05};
+    config.cutoffs = {0, 0};
+    config.compressed = false;
+    config.number_expression_thresholds = 2;
+    config.experiment_names = false;
+    config.path_out = "IBF_delete_Exp_";
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
+    ibf(config);
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf{};
     load_ibf(ibf, "IBF_delete_Exp_IBF_Level_0");
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_0{seqan3::bin_count{2u},
@@ -91,7 +90,9 @@ TEST_F(delete_test, no_given_thresholds)
                                                                               seqan3::bin_size{ibf.bin_size()},
                                                                               seqan3::hash_function_count{1u}};
 
-    delete_bin({0, 1}, ibf_args_delete, "IBF_delete_Exp_", true);
+    config.path_in = config.path_out;
+    config.delete_files = {0, 1};
+    delete_bin(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_delete{};
 
@@ -104,32 +105,29 @@ TEST_F(delete_test, no_given_thresholds)
 
 TEST_F(insert_test, ibf)
 {
-    configuration ibf_args{};
-    minimiser_arguments minimiser_args{};
-    initialization_args(ibf_args);
-    ibf_args.compressed = false;
-    ibf_args.path_out = "IBF_True_Exp_";
-    ibf_args.expression_thresholds = {1, 2};
-    minimiser_args.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
-    std::vector<double> fpr = {0.05};
-    std::vector<uint8_t> cutoffs{0, 0};
+    configuration config{};
+    initialization_args(config);
+    config.compressed = false;
+    config.path_out = "IBF_True_Exp_";
+    config.expression_thresholds = {1, 2};
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
+    config.fpr = {0.05};
+    config.cutoffs = {0, 0};
 
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    ibf(config);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    configuration ibf_args_insert{};
-    minimiser_arguments minimiser_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.compressed = false;
-    ibf_args_insert.path_out = "IBF_True_Exp_";
-    ibf_args_insert.expression_thresholds = {1, 2};
-    minimiser_args_insert.experiment_names = false;
-    ibf_args_insert.path_out = "IBF_Insert_Exp_";
-    std::vector<std::filesystem::path> sequence_files_insert = {data("mini_example.fasta")};
-    ibf(sequence_files_insert, ibf_args_insert, minimiser_args_insert, fpr, cutoffs_insert);
+    config.compressed = false;
+    config.path_out = "IBF_True_Exp_";
+    config.expression_thresholds = {1, 2};
+    config.experiment_names = false;
+    config.path_out = "IBF_Insert_Exp_";
+    config.path_in = config.path_out;
+    config.sequence_files = {data("mini_example.fasta")};
+    ibf(config);
 
-    insert(sequence_files_insert, ibf_args_insert, minimiser_args_insert, cutoffs_insert, "", "IBF_Insert_Exp_", false);
+    insert(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -151,33 +149,29 @@ TEST_F(insert_test, ibf)
 
 TEST_F(insert_test, ibf_no_given_thresholds)
 {
-    configuration ibf_args{};
-    minimiser_arguments minimiser_args{};
-    initialization_args(ibf_args);
-    ibf_args.compressed = false;
-    ibf_args.path_out = "IBF_True_Exp_";
-    ibf_args.number_expression_thresholds = 2;
-    minimiser_args.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
-    std::vector<double> fpr = {0.05};
+    configuration config{};
+    initialization_args(config);
+    config.compressed = false;
+    config.path_out = "IBF_True_Exp_";
+    config.number_expression_thresholds = 2;
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
+    config.fpr = {0.05};
 
     std::vector<uint16_t> expected{};
-    std::vector<uint8_t> cutoffs{0, 0};
+    config.cutoffs = {0, 0};
 
-    std::vector<uint16_t> medians = ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    std::vector<uint16_t> medians = ibf(config);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    configuration ibf_args_insert{};
-    minimiser_arguments minimiser_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.compressed = false;
-    ibf_args_insert.number_expression_thresholds = 2;
-    minimiser_args_insert.experiment_names = false;
-    ibf_args_insert.path_out = "IBF_Insert_Exp_";
-    std::vector<std::filesystem::path> sequence_files_insert = {data("mini_example.fasta")};
-    std::vector<uint16_t> medians_insert =
-        ibf(sequence_files_insert, ibf_args_insert, minimiser_args_insert, fpr, cutoffs_insert);
-    insert(sequence_files_insert, ibf_args_insert, minimiser_args_insert, cutoffs_insert, "", "IBF_Insert_Exp_", true);
+    config.compressed = false;
+    config.number_expression_thresholds = 2;
+    config.experiment_names = false;
+    config.path_out = "IBF_Insert_Exp_";
+    config.sequence_files = {data("mini_example.fasta")};
+    std::vector<uint16_t> medians_insert = ibf(config);
+    config.path_in = config.path_out;
+    insert(config);
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
 
@@ -204,37 +198,33 @@ TEST_F(insert_test, ibf_no_given_thresholds)
 
 TEST_F(insert_test, ibf_delete)
 {
-    configuration ibf_args{};
-    minimiser_arguments minimiser_args{};
-    initialization_args(ibf_args);
-    ibf_args.compressed = false;
-    ibf_args.path_out = "IBF_True_Exp_";
-    ibf_args.expression_thresholds = {1, 2};
-    minimiser_args.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files = {data("mini_example.fasta"),
-                                                         data("mini_example2.fasta"),
-                                                         data("mini_example.fasta")};
-    std::vector<double> fpr = {0.05, 0.05};
-    std::vector<uint8_t> cutoffs{0, 0, 0};
+    configuration config{};
+    initialization_args(config);
+    config.compressed = false;
+    config.path_out = "IBF_True_Exp_";
+    config.expression_thresholds = {1, 2};
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example2.fasta"), data("mini_example.fasta")};
+    config.fpr = {0.05, 0.05};
+    config.cutoffs = {0, 0, 0};
 
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    ibf(config);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    configuration ibf_args_insert{};
-    minimiser_arguments minimiser_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.compressed = false;
-    ibf_args_insert.path_out = "IBF_Insert_Exp_";
-    ibf_args_insert.expression_thresholds = {1, 2};
-    minimiser_args_insert.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files_insert = {data("mini_example2.fasta")};
+    config.compressed = false;
+    config.path_out = "IBF_Insert_Exp_";
+    config.expression_thresholds = {1, 2};
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example2.fasta")};
     std::vector<std::filesystem::path> sequence_files_test = {data("mini_example.fasta"),
                                                               data("mini_example2.fasta"),
                                                               data("mini_example.fasta")};
 
-    ibf(sequence_files_test, ibf_args_insert, minimiser_args, fpr, cutoffs);
-    delete_bin({1}, ibf_args_insert, ibf_args_insert.path_out, false);
-    insert(sequence_files_insert, ibf_args_insert, minimiser_args_insert, cutoffs_insert, "", "IBF_Insert_Exp_", false);
+    ibf(config);
+    config.path_in = config.path_out;
+    config.delete_files = {1};
+    delete_bin(config);
+    insert(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -256,37 +246,31 @@ TEST_F(insert_test, ibf_delete)
 
 TEST_F(insert_test, ibf_delete_no_given_threshold)
 {
-    configuration ibf_args{};
-    minimiser_arguments minimiser_args{};
-    initialization_args(ibf_args);
-    ibf_args.compressed = false;
-    ibf_args.path_out = "IBF_True_Exp_";
-    ibf_args.number_expression_thresholds = 2;
-    minimiser_args.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files = {data("mini_example.fasta"),
-                                                         data("mini_example2.fasta"),
-                                                         data("mini_example.fasta")};
-    std::vector<double> fpr = {0.05, 0.05};
-    std::vector<uint8_t> cutoffs{0, 0, 0};
+    configuration config{};
+    initialization_args(config);
+    config.compressed = false;
+    config.path_out = "IBF_True_Exp_";
+    config.number_expression_thresholds = 2;
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example2.fasta"), data("mini_example.fasta")};
+    config.fpr = {0.05, 0.05};
+    config.cutoffs = {0, 0, 0};
 
-    ibf(sequence_files, ibf_args, minimiser_args, fpr, cutoffs);
+    ibf(config);
 
     std::vector<uint8_t> cutoffs_insert{0};
-    configuration ibf_args_insert{};
-    minimiser_arguments minimiser_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.compressed = false;
-    ibf_args_insert.path_out = "IBF_Insert_Exp_";
-    ibf_args_insert.number_expression_thresholds = 2;
-    minimiser_args_insert.experiment_names = false;
-    std::vector<std::filesystem::path> sequence_files_insert = {data("mini_example2.fasta")};
-    std::vector<std::filesystem::path> sequence_files_test = {data("mini_example.fasta"),
-                                                              data("mini_example2.fasta"),
-                                                              data("mini_example.fasta")};
+    config.compressed = false;
+    config.path_out = "IBF_Insert_Exp_";
+    config.number_expression_thresholds = 2;
+    config.experiment_names = false;
+    config.sequence_files = {data("mini_example2.fasta")};
+    config.sequence_files = {data("mini_example.fasta"), data("mini_example2.fasta"), data("mini_example.fasta")};
 
-    ibf(sequence_files_test, ibf_args_insert, minimiser_args, fpr, cutoffs);
-    delete_bin({1}, ibf_args_insert, ibf_args_insert.path_out, true);
-    insert(sequence_files_insert, ibf_args_insert, minimiser_args_insert, cutoffs_insert, "", "IBF_Insert_Exp_", true);
+    ibf(config);
+    config.path_in = config.path_out;
+    config.delete_files = {1};
+    delete_bin(config);
+    insert(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -315,24 +299,21 @@ TEST_F(insert_test, ibf_delete_no_given_threshold)
 
 TEST_F(insert_test, ibfmin)
 {
-    configuration ibf_args{};
-    initialization_args(ibf_args);
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05, 0.05};
-    ibf_args.path_out = "IBFMIN_Test_Given_";
-    ibf_args.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file = {data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser")};
-    ibf(minimiser_file, ibf_args, fpr);
+    configuration config{};
+    initialization_args(config);
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05, 0.05};
+    config.path_out = "IBFMIN_Test_Given_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser"), data("mini_example.minimiser")};
+    ibf_min(config);
 
-    configuration ibf_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.expression_thresholds = {1, 2};
-    ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
-    ibf_args_insert.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file_insert = {data("mini_example.minimiser")};
-    ibf(minimiser_file_insert, ibf_args_insert, fpr);
-    insert(minimiser_file_insert, ibf_args_insert, "", "IBFMIN_Insert_Given_", false);
+    config.expression_thresholds = {1, 2};
+    config.path_out = "IBFMIN_Insert_Given_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser")};
+    ibf(config);
+    insert(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -354,26 +335,25 @@ TEST_F(insert_test, ibfmin)
 
 TEST_F(insert_test, ibfmin_delete)
 {
-    configuration ibf_args{};
-    initialization_args(ibf_args);
-    ibf_args.expression_thresholds = {1, 2};
-    std::vector<double> fpr = {0.05, 0.05};
-    ibf_args.path_out = "IBFMIN_Test_Given_";
-    ibf_args.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file = {data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser")};
-    ibf(minimiser_file, ibf_args, fpr);
+    configuration config{};
+    initialization_args(config);
+    config.expression_thresholds = {1, 2};
+    config.fpr = {0.05, 0.05};
+    config.path_out = "IBFMIN_Test_Given_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser"),
+                             data("mini_example.minimiser"),
+                             data("mini_example.minimiser")};
+    ibf_min(config);
 
-    configuration ibf_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.expression_thresholds = {1, 2};
-    ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
-    ibf_args_insert.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file_insert = {data("mini_example.minimiser")};
-    ibf(minimiser_file, ibf_args_insert, fpr);
-    delete_bin({1}, ibf_args_insert, ibf_args_insert.path_out, false);
-    insert(minimiser_file_insert, ibf_args_insert, "", "IBFMIN_Insert_Given_", false);
+    config.expression_thresholds = {1, 2};
+    config.path_out = "IBFMIN_Insert_Given_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser")};
+    ibf_min(config);
+    config.delete_files = {1};
+    delete_bin(config);
+    insert_min(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -395,26 +375,24 @@ TEST_F(insert_test, ibfmin_delete)
 
 TEST_F(insert_test, ibfmin_no_given_thresholds)
 {
-    configuration ibf_args{};
-    initialization_args(ibf_args);
-    ibf_args.number_expression_thresholds = 2;
-    std::vector<double> fpr = {0.05, 0.05};
-    ibf_args.path_out = "IBFMIN_Test_Given_";
-    ibf_args.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file = {data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser")};
+    configuration config{};
+    initialization_args(config);
+    config.number_expression_thresholds = 2;
+    config.fpr = {0.05, 0.05};
+    config.path_out = "IBFMIN_Test_Given_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser"), data("mini_example.minimiser")};
 
-    ibf(minimiser_file, ibf_args, fpr);
+    ibf_min(config);
 
-    configuration ibf_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.number_expression_thresholds = 2;
-    ibf_args_insert.path_out = "IBFMIN_Insert_Given_";
-    ibf_args_insert.compressed = false;
-    fpr = {0.05};
-    std::vector<std::filesystem::path> minimiser_file_insert = {data("mini_example.minimiser")};
-    ibf(minimiser_file_insert, ibf_args_insert, fpr);
-    insert(minimiser_file_insert, ibf_args_insert, "", "IBFMIN_Insert_Given_", true);
+    config.number_expression_thresholds = 2;
+    config.path_out = "IBFMIN_Insert_Given_";
+    config.compressed = false;
+    config.fpr = {0.05};
+    config.sequence_files = {data("mini_example.minimiser")};
+    ibf_min(config);
+    config.path_in = "IBFMIN_Insert_Given_";
+    insert_min(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;
@@ -442,28 +420,28 @@ TEST_F(insert_test, ibfmin_no_given_thresholds)
 
 TEST_F(insert_test, delete_ibfmin_no_given_thresholds)
 {
-    configuration ibf_args{};
-    initialization_args(ibf_args);
-    ibf_args.number_expression_thresholds = 2;
-    std::vector<double> fpr = {0.05, 0.05};
-    ibf_args.path_out = "IBFMIN_Test_Given_Del_";
-    ibf_args.compressed = false;
-    std::vector<std::filesystem::path> minimiser_file = {data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser"),
-                                                         data("mini_example.minimiser")};
+    configuration config{};
+    initialization_args(config);
+    config.number_expression_thresholds = 2;
+    config.fpr = {0.05, 0.05};
+    config.path_out = "IBFMIN_Test_Given_Del_";
+    config.compressed = false;
+    config.sequence_files = {data("mini_example.minimiser"),
+                             data("mini_example.minimiser"),
+                             data("mini_example.minimiser")};
 
-    ibf(minimiser_file, ibf_args, fpr);
+    ibf_min(config);
 
-    configuration ibf_args_insert{};
-    initialization_args(ibf_args_insert);
-    ibf_args_insert.number_expression_thresholds = 2;
-    ibf_args_insert.path_out = "IBFMIN_Insert_Given_Del_";
-    ibf_args_insert.compressed = false;
-    fpr = {0.05};
-    std::vector<std::filesystem::path> minimiser_file_insert = {data("mini_example.minimiser")};
-    ibf(minimiser_file, ibf_args_insert, fpr);
-    delete_bin({1}, ibf_args_insert, ibf_args_insert.path_out, true);
-    insert(minimiser_file_insert, ibf_args_insert, "", "IBFMIN_Insert_Given_Del_", true);
+    config.number_expression_thresholds = 2;
+    config.path_out = "IBFMIN_Insert_Given_Del_";
+    config.compressed = false;
+    config.fpr = {0.05};
+    config.sequence_files = {data("mini_example.minimiser")};
+    ibf_min(config);
+    config.delete_files = {1};
+    delete_bin(config);
+    config.path_in = "IBFMIN_Insert_Given_Del_";
+    insert_min(config);
 
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
     seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf_insert;

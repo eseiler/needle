@@ -30,8 +30,12 @@ TEST_F(count_test, small_example)
 {
     configuration args{};
     initialization_args(args);
+    args.sequence_files = {data("mini_example.fasta")};
+    args.include_file = data("mini_gen.fasta");
+    args.genome_file = data("mini_gen.genome");
+    args.paired = false;
 
-    count(args, {data("mini_example.fasta")}, data("mini_gen.fasta"), data("mini_gen.genome"), false);
+    count(args);
 
     std::ifstream output_file("mini_example.count.out");
     std::string line;
@@ -50,12 +54,12 @@ TEST_F(count_test, small_example_paired)
 {
     configuration args{};
     initialization_args(args);
+    args.sequence_files = {data("mini_example.fasta"), data("mini_example.fasta")};
+    args.include_file = data("mini_gen.fasta");
+    args.genome_file = data("mini_gen.genome");
+    args.paired = true;
 
-    count(args,
-          {data("mini_example.fasta"), data("mini_example.fasta")},
-          data("mini_gen.fasta"),
-          data("mini_gen.genome"),
-          true);
+    count(args);
 
     std::ifstream output_file("mini_example.count.out");
     std::string line;
@@ -74,8 +78,12 @@ TEST_F(count_test, small_example_exclude)
 {
     configuration args{};
     initialization_args(args);
+    args.sequence_files = {data("mini_example.fasta")};
+    args.include_file = data("mini_gen.fasta");
+    args.genome_file = data("mini_gen2.genome");
+    args.paired = false;
 
-    count(args, {data("mini_example.fasta")}, data("mini_gen.fasta"), data("mini_gen2.genome"), false);
+    count(args);
 
     std::ifstream output_file("mini_example.count.out");
     std::string line;
@@ -94,8 +102,10 @@ TEST_F(count_test, genome_small_example)
 {
     configuration args{};
     initialization_args(args);
+    args.genome_file = data("mini_gen.fasta");
+    args.exclude_file = data("mini_gen2.fasta");
 
-    count_genome(args, data("mini_gen.fasta"), data("mini_gen2.fasta"));
+    count_genome(args);
 
     std::ifstream output_file;
     uint64_t expected{192};
