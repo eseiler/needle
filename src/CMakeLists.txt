@@ -4,6 +4,17 @@
 
 cmake_minimum_required (VERSION 3.25...3.30)
 
+# Add the FetchContent module for downloading the HIBF library
+include(FetchContent)
+FetchContent_Declare(
+    hibf_fetch_content
+    GIT_REPOSITORY "https://github.com/seqan/hibf"
+    GIT_TAG "main")
+option(INSTALL_HIBF "" OFF)
+FetchContent_MakeAvailable(hibf_fetch_content)
+
+find_package(OpenMP REQUIRED COMPONENTS CXX)
+
 set (NEEDLE_SOURCE_FILES
      count.cpp
      delete.cpp
@@ -26,6 +37,8 @@ add_library ("${PROJECT_NAME}_lib" STATIC ${NEEDLE_SOURCE_FILES})
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC seqan3::seqan3)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC sharg::sharg)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC seqan::hibf)
+target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC robin_hood::robin_hood)
+target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories ("${PROJECT_NAME}_lib" PUBLIC ../include)
 
 add_executable ("${PROJECT_NAME}" needle.cpp)
@@ -40,5 +53,5 @@ install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 option (NEEDLE_WITH_WERROR "Report compiler warnings as errors." ON)
 
 if (NEEDLE_WITH_WERROR)
-    target_compile_options (${PROJECT_NAME}_lib PUBLIC "-Werror")
+   target_compile_options (${PROJECT_NAME}_lib PUBLIC "-Werror")
 endif ()

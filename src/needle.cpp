@@ -89,8 +89,8 @@ void initialise_arguments_ibf(sharg::parser & parser,
                               size_t & num_hash,
                               std::vector<double> & fpr)
 {
-    parser.add_flag(ibf_args.compressed,
-                    sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS."});
+    // parser.add_flag(ibf_args.compressed,
+    //                 sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS (outdated)."});
 
     parser.add_option(fpr,
                       sharg::config{.short_id = 'f',
@@ -377,10 +377,10 @@ int run_needle_insert(sharg::parser & parser)
 
     initialise_arguments_minimiser(parser, minimiser_args, cutoffs);
 
-    parser.info.short_description = "Inserts into a given uncompressed Needle index.";
+    // parser.info.short_description = "Inserts into a given uncompressed Needle index.";
 
-    parser.add_flag(ibf_args.compressed,
-                    sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS."});
+    // parser.add_flag(ibf_args.compressed,
+    //                 sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS (outdated)."});
 
     parser.add_option(ibf_args.threads,
                       sharg::config{.short_id = 't',
@@ -504,8 +504,8 @@ int run_needle_insert_min(sharg::parser & parser)
                                     .description = "Directory where output files should be saved.",
                                     .validator = sharg::output_directory_validator{}});
 
-    parser.add_flag(ibf_args.compressed,
-                    sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS."});
+    // parser.add_flag(ibf_args.compressed,
+    //                 sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS (outdated)."});
 
     parser.add_option(ibf_args.threads,
                       sharg::config{.short_id = 't',
@@ -558,8 +558,8 @@ int run_needle_delete_bin(sharg::parser & parser)
                                     .description = "Directory where output files should be saved.",
                                     .validator = sharg::output_directory_validator{}});
 
-    parser.add_flag(ibf_args.compressed,
-                    sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS."});
+    // parser.add_flag(ibf_args.compressed,
+    //                 sharg::config{.short_id = 'c', .long_id = "compressed", .description = "Use compressed IBFS (outdated)."});
 
     parser.add_option(ibf_args.threads,
                       sharg::config{.short_id = 't',

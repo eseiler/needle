@@ -3,11 +3,10 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ibf.hpp"
+#include <hibf/interleaved_bloom_filter.hpp>
+
 
 #include <cereal/archives/binary.hpp>
-
-#include <hibf/build/bin_size_in_bits.hpp>
-#include <hibf/misc/divide_and_ceil.hpp>
 
 #include "misc/calculate_cutoff.hpp"
 #include "misc/check_cutoffs_samples.hpp"
@@ -215,6 +214,13 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
             // ^^ why divide? --> estimate the number of minimisers
         }
 
+        auto divide_and_ceil = [](uint64_t const dividend, uint64_t const divisor) -> uint64_t
+        {
+            assert(dividend >= 1u || divisor >= 1u);
+            assert(divisor != 0u);
+            return (dividend + divisor - 1u) / divisor;
+        };
+
         // If set_expression_thresholds_samplewise is not set the expressions as determined by the first file are used for
         // all files.
         if constexpr (samplewise)
@@ -223,9 +229,9 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
             for (int c = 0; c < ibf_args.number_expression_thresholds - 1; c++)
             {
                 diff = diff * 2;
-                sizes[i].push_back(seqan::hibf::divide_and_ceil(filesize, diff));
+                sizes[i].push_back(divide_and_ceil(filesize, diff));
             }
-            sizes[i].push_back(seqan::hibf::divide_and_ceil(filesize, diff));
+            sizes[i].push_back(divide_and_ceil(filesize, diff));
         }
         else if constexpr (minimiser_files_given)
         {
@@ -249,7 +255,7 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
     }
 
     // Create IBFs
-    std::vector<seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed>> ibfs;
+    std::vector<seqan::hibf::interleaved_bloom_filter> ibfs;
     for (unsigned j = 0; j < ibf_args.number_expression_thresholds; j++)
     {
         uint64_t size{};
@@ -267,11 +273,15 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
                 + std::string("your own expression thresholds, decrease the thresholds from level ")
                 + std::to_string(ibf_args.expression_thresholds[j]) + std::string(" on.\n")};
         }
-        size = seqan::hibf::build::bin_size_in_bits({.fpr = fprs[j], //
-                                                     .hash_count = num_hash,
-                                                     .elements = seqan::hibf::divide_and_ceil(size, num_files)});
+        // m = -hn/ln(1-p^(1/h))
+        size = (size + num_files - 1u) / num_files;
+        double const numerator{-static_cast<double>(size * num_hash)};
+        double const denominator{std::log(1 - std::exp(std::log(fprs[j]) / num_hash))};
+        size = std::ceil(numerator / denominator);
         sizes_ibf.push_back(size);
-        ibfs.emplace_back(seqan3::bin_count{num_files}, seqan3::bin_size{size}, seqan3::hash_function_count{num_hash});
+        ibfs.emplace_back(seqan::hibf::bin_count{num_files},
+                          seqan::hibf::bin_size{size},
+                          seqan::hibf::hash_function_count{num_hash});
     }
 
 // Add minimisers to ibf
@@ -347,7 +357,7 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
 
                 if (occurence >= threshold)
                 {
-                    ibfs[j].emplace(hash, seqan3::bin_index{i});
+                    ibfs[j].emplace(hash, seqan::hibf::bin_index{i});
                     counts_per_level[i][j]++;
                     break;
                 }
@@ -360,15 +370,8 @@ void ibf_helper(std::vector<std::filesystem::path> const & minimiser_files,
     {
         std::filesystem::path const filename = filenames::ibf(ibf_args.path_out, samplewise, i, ibf_args);
 
-        if (ibf_args.compressed)
-        {
-            seqan3::interleaved_bloom_filter<seqan3::data_layout::compressed> ibf{ibfs[i]};
-            store_ibf(ibf, filename);
-        }
-        else
-        {
-            store_ibf(ibfs[i], filename);
-        }
+        store_ibf(ibfs[i], filename);
+        
     }
 
     // Store all expression thresholds per level.

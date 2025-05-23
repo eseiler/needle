@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "delete.hpp"
+#include <hibf/interleaved_bloom_filter.hpp>
 
 #include "misc/filenames.hpp"
 
@@ -14,9 +15,9 @@ void delete_bin(std::vector<uint64_t> const & delete_files,
 {
     load_args(ibf_args, filenames::data(path_in));
 
-    std::vector<seqan3::bin_index> bins_to_delete{};
+    std::vector<seqan::hibf::bin_index> bins_to_delete{};
     for (size_t i = 0; i < delete_files.size(); i++)
-        bins_to_delete.push_back(seqan3::bin_index{delete_files[i]});
+        bins_to_delete.push_back(seqan::hibf::bin_index{delete_files[i]});
 
     omp_set_num_threads(ibf_args.threads);
 
@@ -26,21 +27,14 @@ void delete_bin(std::vector<uint64_t> const & delete_files,
     {
         std::filesystem::path filename = filenames::ibf(path_in, samplewise, i, ibf_args);
 
-        seqan3::interleaved_bloom_filter<seqan3::data_layout::uncompressed> ibf;
+        seqan::hibf::interleaved_bloom_filter ibf;
         load_ibf(ibf, filename);
         ibf.clear(bins_to_delete);
 
         filename = filenames::ibf(ibf_args.path_out, samplewise, i, ibf_args);
-
-        if (ibf_args.compressed)
-        {
-            seqan3::interleaved_bloom_filter<seqan3::data_layout::compressed> ibfc{std::move(ibf)};
-            store_ibf(ibfc, filename);
-        }
-        else
-        {
-            store_ibf(ibf, filename);
-        }
+        
+        store_ibf(ibf, filename);
+        
     }
 
     // Store deleted bins
