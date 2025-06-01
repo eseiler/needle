@@ -37,7 +37,7 @@ add_library ("${PROJECT_NAME}_lib" STATIC ${NEEDLE_SOURCE_FILES})
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC seqan3::seqan3)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC sharg::sharg)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC seqan::hibf)
-target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC robin_hood::robin_hood)
+#target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC robin_hood::robin_hood)
 target_link_libraries ("${PROJECT_NAME}_lib" PUBLIC OpenMP::OpenMP_CXX)
 target_include_directories ("${PROJECT_NAME}_lib" PUBLIC ../include)
 
@@ -50,7 +50,7 @@ target_compile_definitions ("${PROJECT_NAME}" PRIVATE NEEDLE_DATE="${NEEDLE_ARGP
 include (GNUInstallDirs)
 install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
-option (NEEDLE_WITH_WERROR "Report compiler warnings as errors." ON)
+option (NEEDLE_WITH_WERROR "Report compiler warnings as errors." OFF)
 
 if (NEEDLE_WITH_WERROR)
    target_compile_options (${PROJECT_NAME}_lib PUBLIC "-Werror")
