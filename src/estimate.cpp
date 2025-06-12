@@ -58,8 +58,11 @@ void estimate(estimate_ibf_arguments & args,
         {
             std::ifstream fin{deleted_files_path};
             uint64_t number;
+
             while (fin >> number)
+            {
                 result.push_back(number);
+            }
         }
         return result;
     }();
@@ -221,7 +224,7 @@ void estimate(estimate_ibf_arguments & args,
             }
         }
 
-        // Write results: one line per sequence, one value per experiment
+        // Write results
         for (size_t i = 0; i < seqs.size(); ++i)
         {
             outfile << ids[i] << '\t';
